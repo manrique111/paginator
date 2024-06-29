@@ -35,7 +35,7 @@ Para esta parte anexare un ejemolo de como se debera de usar
 	// inicializar el constructor
 	pages := shared.PagesInit(page, pageSize)
 	
-	// Amar las condiciones
+	// Armar las condiciones
 	var conditions = paginator.QueryParams{  
 	    Where: map[string]interface{}{  
 	       "supplier_id": suplierID,  
@@ -51,7 +51,7 @@ Para esta parte anexare un ejemolo de como se debera de usar
 	}
     
 
-    //en caso de modificar tu condicion where o anexar nuevas condiciones
+    //en caso de modificar tú condición where o anexar nuevas condiciones
     if status != "all" {
 		conditions.Where = map[string]interface{}{
 			"Status": status,
