@@ -9,7 +9,7 @@ Pido disculpas por la documentación en español, pero aún no domino bien el in
 
 ## Instalación
 
-    go get github.com/manrique111/paginator.git
+    go get github.com/manrique111/paginator
 
     import (
 	"github.com/tu-usuario/gorm-plugin-example/paginator"
