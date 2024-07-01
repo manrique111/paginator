@@ -7,6 +7,12 @@ Paginar en GORM es un poco complicado. Busqué en internet y encontré algunas s
 
 Pido disculpas por la documentación en español, pero aún no domino bien el inglés. ¡Saludos!
 
+Actualizacion
+Debido a los usos actualizo la funcionalidad de pages ahora los filtros y las condiciones sera por fuera
+para aprovechar la funcionalida de go
+
+la funcionalida tendra por objetivo regresar tu objeto page formado con la data para que lo pueda usar en tu front
+
 ## Instalación
 
     go get github.com/manrique111/paginator
@@ -17,66 +23,54 @@ Pido disculpas por la documentación en español, pero aún no domino bien el in
 
 
 ## Forma de usarlo
-Para esta parte anexare un ejemolo de como se debera de usar
-
-    func GetFuncion(context *gin.Context) {
-	status := context.Query("status")
-    page, _ := strconv.Atoi(context.Query("page"))  
-	pageSize, _ := strconv.Atoi(context.Query("page_size"))  
-	filter := context.Query("filter")
-
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-    if err != nil {
+    //	@Router			/GetMyFunction/order?supplierID=&status=&page=&pageSize=&filter=
+    func GetMyFunction(context *gin.Context) {
+        Para esta parte anexare un ejemolo de como se debera de usar
+        db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+        if err != nil {
         panic("failed to connect database")
-    }
-
-    var users []User
-	
-	// inicializar el constructor
-	pages := shared.PagesInit(page, pageSize)
-	
-	// Armar las condiciones
-	var conditions = paginator.QueryParams{  
-	    Where: map[string]interface{}{  
-	       "supplier_id": suplierID,  
-	    },  
-	    Joins: []string{  
-	       //"INNER JOIN other_table ON other_table.id = main_table.other_table_id",  
-	  },  
-	    Associations: []string{"Address", "celphones.Compania",}, // Especifica las asociaciones a .Preload  
-	  Order: []shared.Order{  
-	       {Column: "ID", Dir: "Desc"},  
-	       //{Column: orderColumn2, Dir: orderDir2},  
-	  },  
-	}
+        }
+        var purchaseOrders []models.PurchaseOrders
+        suplierID := context.Query("suplierID")
+        status := context.Query("status")
+        page, _ := strconv.Atoi(context.Query("page"))
+        pageSize, _ := strconv.Atoi(context.Query("page_size"))
+        filter := context.Query("filter")
     
-
-    //en caso de modificar tú condición where o anexar nuevas condiciones
-    if status != "all" {
-		conditions.Where = map[string]interface{}{
-			"Status": status,
-		}
-	}
-
-	//sentencias or
-	if filter != "" {
-		conditions.OrWhere = []string{
-			fmt.Sprintf("ID LIKE '%%%s%%'", filter),
-			fmt.Sprintf("name LIKE '%%%s%%'", filter),
-		}
-	}
-
-
-	if err := pages.SetRecord(db, &user, conditions); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			context.AbortWithStatusJSON(http.StatusNotFound, gin.H{"msg": "No existen registros"})
-		} else {
-			context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"msg": err.Error()})
-		}
-	}
-	fmt.Printf("Total Count: %d, Total Pages: %d\n", pages.TotalCount, pages.TotalPages)
-	context.JSON(http.StatusOK, pages)
-}
+        pages := shared.PagesInit(page, pageSize)
+        pages.SetDebug(true)    // anexar si se requiere que imprima los sql por consola
+        // Añadir condiciones de búsqueda usando parámetros nativos de GORM
+        query := db.Model(&models.PurchaseOrders{})
+        if suplierID != "" {
+            query = query.Where("supplier_id = ?", suplierID)
+        }
+        if status != "TODOS" && status != "" {
+            query = query.Where("status = ?", status)
+        }
+        if filter != "" {
+            if shared.IsValidDate(filter) {
+                query = query.Or("DATE_FORMAT(CreatedAt, '%Y-%m-%d') LIKE ?", "%"+filter+"%")
+            } else {
+                query = query.Where("cve_doc_sae LIKE ?", "%"+filter+"%")
+                query = query.Or("ID LIKE ?", "%"+filter+"%")
+                query = query.Or("quantity LIKE ?", "%"+filter+"%")
+                query = query.Or("quantity_received LIKE ?", "%"+filter+"%")
+            }
+        }
+        query = query.Order("ID DESC")
+    
+        if err := pages.SetRecord(query, &purchaseOrders); err != nil {
+            if errors.Is(err, gorm.ErrRecordNotFound) {
+                context.AbortWithStatusJSON(http.StatusNotFound, gin.H{"Spanish": "No existen registros"})
+            } else {
+                context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"Spanish": err.Error()})
+            }
+        }
+    
+        context.JSON(http.StatusOK, pages)
+        fmt.Printf("Total Count: %d, Total Pages: %d\n", pages.TotalCount, pages.TotalPages)
+        context.JSON(http.StatusOK, pages)
+    }
 
 
 
@@ -92,18 +86,6 @@ Para esta parte anexare un ejemolo de como se debera de usar
 		  Data       []interface{} `json:"data"`  
 	}
 
-## Estructuracion de las clasulas where
 
-    type Order struct {  
-	    Column string  
-	    Dir    string  
-	}  
-  
-	type QueryParams struct {  
-	    Where        map[string]interface{}  
-	    OrWhere      []string  
-		Associations []string  
-	    Joins        []string  
-	    Order        []Order  
-	}
+
 

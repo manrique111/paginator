@@ -1,4 +1,4 @@
-package paginator
+package shared
 
 import (
 	"fmt"
@@ -9,22 +9,10 @@ import (
 type Pages struct {
 	Page       int           `json:"page"`
 	PageSize   int           `json:"page_size"`
+	DebugSql   bool          `json:"-"`
 	TotalPages int64         `json:"total_pages"`
 	TotalCount int64         `json:"total_count"`
 	Data       []interface{} `json:"data"`
-}
-
-type Order struct {
-	Column string
-	Dir    string
-}
-
-type QueryParams struct {
-	Where        map[string]interface{}
-	OrWhere      []string
-	Associations []string
-	Joins        []string
-	Order        []Order
 }
 
 // Constructor
@@ -48,38 +36,35 @@ func PagesInit(page int, pageSize int) *Pages {
 	return pages
 }
 
-func (p *Pages) SetRecord(db *gorm.DB, modelo interface{}, params QueryParams) error {
+func (p *Pages) SetDebug(debugSql bool) {
+	p.DebugSql = debugSql
+}
+
+func (p *Pages) SetRecord(db *gorm.DB, modelo interface{}) error {
 	var totalCount int64
 
 	query := db.Model(modelo)
-	// Apply joins
-	for _, join := range params.Joins {
-		query = query.Joins(join)
-	}
-	//Apply wheres
-	for key, value := range params.Where {
-		query = query.Where(fmt.Sprintf("%s = ?", key), value)
-	}
-	// Apply OrWheres
-	for _, condition := range params.OrWhere {
-		query = query.Or(condition)
-	}
-	// Pre-cargar asociaciones si se especifican
-	for _, association := range params.Associations {
-		query = query.Preload(association)
-	}
 
-	// Aplicar orden si se especifica
-	for _, order := range params.Order {
-		orderDir := "ASC"
-		if order.Dir != "" {
-			orderDir = order.Dir
-		}
-		query = query.Order(fmt.Sprintf("%s %s", order.Column, orderDir))
+	// Debugging: Print the SQL query before counting
+	if p.DebugSql {
+		sqlCount := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+			return query.Session(&gorm.Session{DryRun: true}).Count(&totalCount)
+		})
+		fmt.Printf("SQL before count: %s\n", sqlCount)
 	}
 
 	// Obtener el total de registros que cumplen las condiciones
-	query.Count(&totalCount)
+	if err := query.Count(&totalCount).Find(modelo).Error; err != nil {
+		return err
+	}
+
+	// Debugging: Print the SQL query after counting
+	if p.DebugSql {
+		sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+			return query.Session(&gorm.Session{DryRun: true}).Offset(0).Limit(p.PageSize).Find(modelo)
+		})
+		fmt.Printf("SQL after count: %s\n", sql)
+	}
 
 	offset := (p.Page - 1) * p.PageSize
 	if err := query.Offset(offset).Limit(p.PageSize).Find(modelo).Error; err != nil {
