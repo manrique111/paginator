@@ -17,7 +17,7 @@ type Paginator struct {
 
 // Constructor
 func NewPaginator(page int, pageSize int) *Paginator {
-	// Obtener los parámetros de paginación directamente
+	// Obtener los parámetros de paginacion directamente
 	if page <= 0 {
 		page = 1
 	}
