@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-type Pages struct {
+type Paginator struct {
 	Page       int           `json:"page"`
 	PageSize   int           `json:"page_size"`
 	DebugSql   bool          `json:"-"`
@@ -16,7 +16,7 @@ type Pages struct {
 }
 
 // Constructor
-func PagesInit(page int, pageSize int) *Pages {
+func NewPaginator(page int, pageSize int) *Paginator {
 	// Obtener los parámetros de paginación directamente
 	if page <= 0 {
 		page = 1
@@ -28,7 +28,7 @@ func PagesInit(page int, pageSize int) *Pages {
 		pageSize = 10
 	}
 	// Obtener los parámetros de ordenamiento directamente
-	pages := &Pages{
+	pages := &Paginator{
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -36,21 +36,21 @@ func PagesInit(page int, pageSize int) *Pages {
 	return pages
 }
 
-func (p *Pages) SetDebug(debugSql bool) {
+func (p *Paginator) SetDebug(debugSql bool) {
 	p.DebugSql = debugSql
 }
 
-func (p *Pages) SetRecord(db *gorm.DB, modelo interface{}) error {
+func (p *Paginator) SetRecord(db *gorm.DB, modelo interface{}) error {
 	var totalCount int64
 
 	query := db.Model(modelo)
 
 	// Debugging: Print the SQL query before counting
 	if p.DebugSql {
-		sqlCount := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		sqlQueryCount := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 			return query.Session(&gorm.Session{DryRun: true}).Count(&totalCount)
 		})
-		fmt.Printf("SQL before count: %s\n", sqlCount)
+		fmt.Printf("SQL before count: %s\n", sqlQueryCount)
 	}
 
 	// Obtener el total de registros que cumplen las condiciones

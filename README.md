@@ -37,8 +37,8 @@ la funcionalida tendra por objetivo regresar tu objeto page formado con la data 
         pageSize, _ := strconv.Atoi(context.Query("page_size"))
         filter := context.Query("filter")
     
-        pages := shared.PagesInit(page, pageSize)
-        pages.SetDebug(true)    // anexar si se requiere que imprima los sql por consola
+        paginator := paginator.NewPaginator(page, pageSize)
+        paginator.SetDebug(true)    // anexar si se requiere que imprima los sql por consola opcional
         // Añadir condiciones de búsqueda usando parámetros nativos de GORM
         query := db.Model(&models.PurchaseOrders{})
         if suplierID != "" {
@@ -59,7 +59,7 @@ la funcionalida tendra por objetivo regresar tu objeto page formado con la data 
         }
         query = query.Order("ID DESC")
     
-        if err := pages.SetRecord(query, &purchaseOrders); err != nil {
+        if err := paginator.SetRecord(query, &purchaseOrders); err != nil {
             if errors.Is(err, gorm.ErrRecordNotFound) {
                 context.AbortWithStatusJSON(http.StatusNotFound, gin.H{"Spanish": "No existen registros"})
             } else {
@@ -67,9 +67,9 @@ la funcionalida tendra por objetivo regresar tu objeto page formado con la data 
             }
         }
     
-        context.JSON(http.StatusOK, pages)
+        context.JSON(http.StatusOK, paginator)
         fmt.Printf("Total Count: %d, Total Pages: %d\n", pages.TotalCount, pages.TotalPages)
-        context.JSON(http.StatusOK, pages)
+        context.JSON(http.StatusOK, paginator)
     }
 
 
@@ -79,11 +79,11 @@ la funcionalida tendra por objetivo regresar tu objeto page formado con la data 
 ## **La estructura que devolvera sera**
 
     type Pages struct {  
-	      Page       int `json:"page"`  
-		  PageSize   int `json:"page_size"`  
-		  TotalPages int64 `json:"total_pages"`  
-		  TotalCount int64 `json:"total_count"`  
-		  Data       []interface{} `json:"data"`  
+      Page       int `json:"page"`  
+      PageSize   int `json:"page_size"`  
+      TotalPages int64 `json:"total_pages"`  
+      TotalCount int64 `json:"total_count"`  
+      Data       []interface{} `json:"data"`  
 	}
 
 
