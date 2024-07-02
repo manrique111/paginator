@@ -18,7 +18,7 @@ la funcionalida tendra por objetivo regresar tu objeto page formado con la data 
     go get github.com/manrique111/paginator
 
     import (
-	"github.com/tu-usuario/gorm-plugin-example/paginator"
+	"github.com/manrique111/paginator"
 	)
 
 
