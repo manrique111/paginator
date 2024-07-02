@@ -1,4 +1,4 @@
-package shared
+package gormplugin
 
 import (
 	"fmt"
