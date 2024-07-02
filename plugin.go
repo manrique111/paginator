@@ -1,4 +1,4 @@
-package gormplugin
+package paginator
 
 import (
 	"fmt"
